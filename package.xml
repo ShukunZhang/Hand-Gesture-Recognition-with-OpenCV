@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>hand_gesture_recognition</name>
+  <name>hand</name>
   <version>0.0.0</version>
   <description>The hand_gesture_command package</description>
 

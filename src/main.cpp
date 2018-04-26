@@ -6,6 +6,28 @@
 using namespace cv;
 using namespace std;
 
+int computeFrequentFinger(vector<int> fingerVector) {
+    sort(fingerVector.begin(), fingerVector.end());
+    int mostFrequentFinger;
+    int thisNumberFrequency = 1;
+    int highestFrequency = 1;
+    mostFrequentFinger = fingerVector[0];
+    for(int i = 1; i < fingerVector.size(); i++) {
+        if(fingerVector[i - 1] != fingerVector[i]) {
+            if(thisNumberFrequency > highestFrequency) {
+                mostFrequentFinger = fingerVector[i - 1];  
+                highestFrequency = thisNumberFrequency;
+            }
+            thisNumberFrequency = 0;
+        }
+        thisNumberFrequency++;
+    }
+    if(thisNumberFrequency > highestFrequency) {
+        mostFrequentFinger = fingerVector[fingerVector.size() - 1];   
+    }
+    return mostFrequentFinger;
+}
+
 int main(int argc, char** argv)
 {
         //open default webcam and check for error
@@ -26,6 +48,10 @@ int main(int argc, char** argv)
 
         char a[40];
         int fingerCount = 0;
+        int previousfinger = 0;
+        int frameNumber = 0;
+        vector<int> fingerVector;
+        int mostFrequentFinger = -1;
         while (TRUE) {
                 bool readimg = cam.read(img);
                 if (!readimg) {
@@ -82,14 +108,14 @@ int main(int argc, char** argv)
                 findContours(img_threshold, contours,hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point());
                 if (contours.size() > 0) {
                         size_t indexOfBiggestContour = -1;
-	                size_t sizeOfBiggestContour = 0;
+	                      size_t sizeOfBiggestContour = 0;
                         
                         //find the largest contour(hand)
-	                for (size_t i = 0; i < contours.size(); i++) {
-		                if (contours[i].size() > sizeOfBiggestContour) { 
-			                sizeOfBiggestContour = contours[i].size();
-			                indexOfBiggestContour = i;
-		                }
+	                      for (size_t i = 0; i < contours.size(); i++) {
+                            if (contours[i].size() > sizeOfBiggestContour) { 
+                                  sizeOfBiggestContour = contours[i].size();
+                                  indexOfBiggestContour = i;
+                            }
                         }
 
 
@@ -164,18 +190,47 @@ int main(int argc, char** argv)
 
                                         }
 
-                                        if(fingerCount==1)
-                                                strcpy(a,"I see ONE!");
-                                        else if(fingerCount==2)
-                                                strcpy(a,"I see TWO!");
-                                        else if(fingerCount==3)
-                                                strcpy(a,"I see THREE!");
-                                        else if(fingerCount==4)
-                                                strcpy(a,"I see FOUR!");
-                                        else if(fingerCount==5)
-                                                strcpy(a,"I see FIVE");
-                                        else
-                                                strcpy(a,"Welcome !!");
+                        fingerVector.push_back(fingerCount);
+                        // Frame number TBD
+                        if (fingerVector.size() > 20){
+                            mostFrequentFinger = computeFrequentFinger(fingerVector);
+                            if(mostFrequentFinger == 1) {
+                                strcpy(a, "You are ready to proceed to next action");
+                                previousfinger = 1;
+                            }
+                            else if(mostFrequentFinger == 2) {
+                                if (previousfinger == 1) {
+                                    strcpy(a, "Some action to be decided");
+                                    previousfinger = mostFrequentFinger;
+                                }
+                            }
+                            else if(mostFrequentFinger == 3) {
+                                if (previousfinger == 1) {
+                                    strcpy(a, "Some action to be decided");
+                                    previousfinger = mostFrequentFinger;
+                                }
+                            }
+                            else if(mostFrequentFinger == 4) {
+                                if (previousfinger == 1) {
+                                    strcpy(a, "Some action to be decided");
+                                    previousfinger = mostFrequentFinger;
+                                }
+                            }
+                            else if(mostFrequentFinger == 5) {
+                                if (previousfinger == 1) {
+                                    strcpy(a, "Some action to be decided");
+                                    previousfinger = mostFrequentFinger;
+                                }
+                            }
+                            else {
+                                if (previousfinger == 1) {
+                                    strcpy(a, "Some action to be decided");
+                                    previousfinger = mostFrequentFinger;
+                                }
+                            }
+                            fingerVector.clear();
+                        }
+
 
                                         putText(img,a,Point(70,70),CV_FONT_HERSHEY_SIMPLEX,3,Scalar(255,0,0),2,8,false);
                                         drawContours(img_threshold, contours, i,Scalar(255,255,0),2, 8, vector<Vec4i>(), 0, Point() );
@@ -203,4 +258,4 @@ int main(int argc, char** argv)
 
         }
      return 0;
-}
+        }

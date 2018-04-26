@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(hand_gesture_recognition)
+project(hand)
 
 find_package(catkin REQUIRED)
 
@@ -24,5 +24,5 @@ catkin_package(
 )
 
 
-add_executable(hand_gesture_recognition src/main.cpp)
-target_link_libraries(hand_gesture_recognition ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+add_executable(hand src/main.cpp)
+target_link_libraries(hand ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})

@@ -28,6 +28,8 @@ int computeFrequentFinger(vector<int> fingerVector) {
     return mostFrequentFinger;
 }
 
+//only push back when the screen count down to 3 2 1 
+
 int main(int argc, char** argv)
 {
         //open default webcam and check for error
@@ -108,15 +110,16 @@ int main(int argc, char** argv)
                 findContours(img_threshold, contours,hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point());
                 if (contours.size() > 0) {
                         size_t indexOfBiggestContour = -1;
-	                      size_t sizeOfBiggestContour = 0;
+	                size_t sizeOfBiggestContour = 0;
                         
                         //find the largest contour(hand)
-	                      for (size_t i = 0; i < contours.size(); i++) {
-                            if (contours[i].size() > sizeOfBiggestContour) { 
-                                  sizeOfBiggestContour = contours[i].size();
-                                  indexOfBiggestContour = i;
-                            }
+	                for (size_t i = 0; i < contours.size(); i++) {
+                                if (contours[i].size() > sizeOfBiggestContour) { 
+                                        sizeOfBiggestContour = contours[i].size();
+                                        indexOfBiggestContour = i;
+                                }
                         }
+                }
 
 
                 vector<vector<int> >hull(contours.size()); 
@@ -176,10 +179,7 @@ int main(int argc, char** argv)
                                         fingerCount = 0;
 
                                         for (size_t k = 0; k < defects[i].size(); k++) {
-                                                //only care about defects whose depth is
-                                                //deep enough to be considered defects between
-                                                //fingertips.
-////////////---------TODO----------/////////////
+
                                                 if (defects[i][k][3] > 13 * 256) { 
                                                         int p_end=defects[i][k][1];
                                                         int p_far=defects[i][k][2];
@@ -189,10 +189,12 @@ int main(int argc, char** argv)
                                                 }
 
                                         }
+                                }
 
-                        fingerVector.push_back(fingerCount);
+                                fingerVector.push_back(fingerCount);
+                        }       
                         // Frame number TBD
-                        if (fingerVector.size() > 20){
+                        if (fingerVector.size() > 20) {
                             mostFrequentFinger = computeFrequentFinger(fingerVector);
                             if(mostFrequentFinger == 1) {
                                 strcpy(a, "You are ready to proceed to next action");
@@ -200,25 +202,25 @@ int main(int argc, char** argv)
                             }
                             else if(mostFrequentFinger == 2) {
                                 if (previousfinger == 1) {
-                                    strcpy(a, "Some action to be decided");
+                                    strcpy(a, "Some action to be decided: 2");
                                     previousfinger = mostFrequentFinger;
                                 }
                             }
                             else if(mostFrequentFinger == 3) {
                                 if (previousfinger == 1) {
-                                    strcpy(a, "Some action to be decided");
+                                    strcpy(a, "Some action to be decided: 3");
                                     previousfinger = mostFrequentFinger;
                                 }
                             }
                             else if(mostFrequentFinger == 4) {
                                 if (previousfinger == 1) {
-                                    strcpy(a, "Some action to be decided");
+                                    strcpy(a, "Some action to be decided: 4");
                                     previousfinger = mostFrequentFinger;
                                 }
                             }
                             else if(mostFrequentFinger == 5) {
                                 if (previousfinger == 1) {
-                                    strcpy(a, "Some action to be decided");
+                                    strcpy(a, "Some action to be decided: 5");
                                     previousfinger = mostFrequentFinger;
                                 }
                             }
@@ -231,23 +233,20 @@ int main(int argc, char** argv)
                             fingerVector.clear();
                         }
 
-
-                                        putText(img,a,Point(70,70),CV_FONT_HERSHEY_SIMPLEX,3,Scalar(255,0,0),2,8,false);
-                                        drawContours(img_threshold, contours, i,Scalar(255,255,0),2, 8, vector<Vec4i>(), 0, Point() );
-                                        drawContours(img_threshold, hullPoint, i, Scalar(255,255,0),1, 8, vector<Vec4i>(),0, Point());
-                                        drawContours(img_roi, hullPoint, i, Scalar(0,0,255),2, 8, vector<Vec4i>(),0, Point() );
-                                        approxPolyDP(contours[i],contours_poly[i],3,false);
-                                        boundRect[i]=boundingRect(contours_poly[i]);
-                                        rectangle(img_roi,boundRect[i].tl(),boundRect[i].br(),Scalar(255,0,0),2,8,0);
-                                        minRect[i].points(rect_point);
-                                        for (size_t k=0;k<4;k++) {
-                                                line(img_roi,rect_point[k],rect_point[(k+1)%4],Scalar(0,255,0),2,8);
-                                        }
-
-                                }
-                        }
-
                 }
+                putText(img,a,Point(70,70),CV_FONT_HERSHEY_SIMPLEX,3,Scalar(255,0,0),2,8,false);
+                drawContours(img_threshold, contours, i,Scalar(255,255,0),2, 8, vector<Vec4i>(), 0, Point() );
+                drawContours(img_threshold, hullPoint, i, Scalar(255,255,0),1, 8, vector<Vec4i>(),0, Point());
+                drawContours(img_roi, hullPoint, i, Scalar(0,0,255),2, 8, vector<Vec4i>(),0, Point() );
+                approxPolyDP(contours[i],contours_poly[i],3,false);
+                boundRect[i]=boundingRect(contours_poly[i]);
+                rectangle(img_roi,boundRect[i].tl(),boundRect[i].br(),Scalar(255,0,0),2,8,0);
+                minRect[i].points(rect_point);
+
+                for (size_t k=0;k<4;k++) {
+                        line(img_roi,rect_point[k],rect_point[(k+1)%4],Scalar(0,255,0),2,8);
+                }
+
                 imshow("Original_image",img);
                 imshow("Gray_image",img_gray);
                 imshow("Thresholded_image",img_threshold);
@@ -257,5 +256,5 @@ int main(int argc, char** argv)
                 }
 
         }
-     return 0;
-        }
+        return 0;
+}

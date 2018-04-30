@@ -34,7 +34,7 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "hand");
     //open default webcam and check for error
-    VideoCapture cam(0);
+    VideoCapture cam(1);
     if (!cam.isOpened()) {
             cout<<"ERROR not opened "<< endl;
             return -1;
@@ -59,6 +59,11 @@ int main(int argc, char** argv)
 
     int right = 0;
     int left = 0;
+
+    VideoWriter out;
+    bool readimg = cam.read(img);
+
+    out.open("out.avi", CV_FOURCC('M','J','P','G'), 15, img.size(), true );
     while (ros::ok()) {
         bool readimg = cam.read(img);
         if (!readimg) {
@@ -140,7 +145,7 @@ int main(int argc, char** argv)
             for (size_t i = 0;i < contours.size(); i++) {
                 //select the most probable hand contour based
                 //on the contour area
-                if (contourArea(contours[i]) > 5000) {
+                if (contourArea(contours[i]) > 5000 && contourArea(contours[i]) < 50000){
                     /*
                     convexHull:
                     The convex hull of a set X of points in the Euclidean plane
@@ -205,7 +210,7 @@ int main(int argc, char** argv)
                         fingerVector.push_back(fingerCount);
 
                         // Frame number TBD
-                        if (fingerVector.size() > 20) {
+                        if (fingerVector.size() > 10) {
                             if (right > left) {
                                 right = 1;
                                 left = 0;
@@ -279,6 +284,7 @@ int main(int argc, char** argv)
             }
 
             imshow("Original_image",img);
+            out << img;
             //imshow("Gray_image",img_gray);
             imshow("Thresholded_image",img_threshold);
             //imshow("ROI",img_roi);
@@ -287,5 +293,6 @@ int main(int argc, char** argv)
             }
         }
     }
+    out.release();
     return 0;
 }

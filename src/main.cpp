@@ -3,6 +3,15 @@
 #include <iostream>
 #include <ros/ros.h>
 
+#include "geometry_msgs/Twist.h"
+#include <tf/tf.h>
+#include <move_base_msgs/MoveBaseAction.h>
+#include <actionlib/client/simple_action_client.h>
+#include <tf/transform_listener.h>
+#include <actionlib/server/simple_action_server.h>
+#include "geometry_msgs/Pose.h"
+#include "geometry_msgs/PoseArray.h"
+
 using namespace cv;
 using namespace std;
 
@@ -64,6 +73,8 @@ int main(int argc, char** argv)
     bool readimg = cam.read(img);
 
     out.open("out.avi", CV_FOURCC('M','J','P','G'), 15, img.size(), true );
+
+    ros::NodeHandle n;
     while (ros::ok()) {
         bool readimg = cam.read(img);
         if (!readimg) {
@@ -226,30 +237,83 @@ int main(int argc, char** argv)
                             else if (mostFrequentFinger == 1) {
                                 if (previousfinger == 0) {
                                     strcpy(a, "TWO fingers! Going Forward!");
+                                    putText(img, a, Point(20,40), CV_FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255,0,0), 2, 8, false);
                                     previousfinger = mostFrequentFinger;
+                                    ros::Publisher rotatePub = n.advertise<geometry_msgs::Twist>("/mobile_base/commands/velocity", 10);
+                                    geometry_msgs::Twist move;
+                                    int c = 0;
+                                    while(ros::ok()) {
+                                        move.linear.x = 0.1;
+                                        rotatePub.publish(move); 
+                                        c++;
+                                        if (c > 385000) {break;}
+                                    }
                                 }
                             }
                             else if(mostFrequentFinger == 2) {
                                 if (previousfinger == 0) {
                                     strcpy(a, "THREE fingers! Going Backward!");
+                                    putText(img, a, Point(20,40), CV_FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255,0,0), 2, 8, false);
                                     previousfinger = mostFrequentFinger;
+                                    ros::Publisher rotatePub = n.advertise<geometry_msgs::Twist>("/mobile_base/commands/velocity", 10);
+                                    geometry_msgs::Twist move;
+                                    int c = 0;
+                                    while(ros::ok()) {
+                                        move.linear.x = -0.1;
+                                        rotatePub.publish(move); 
+                                        c++;
+                                        if (c > 385000) {break;}
+                                    }
+                                
                                 }
                             }
                             else if(mostFrequentFinger == 3) {
                                 if (previousfinger == 0) {
                                     strcpy(a, "FOUR fingers! 360 degree turn!");
+                                    putText(img, a, Point(20,40), CV_FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255,0,0), 2, 8, false);
                                     previousfinger = mostFrequentFinger;
-                                }
+                                    ros::Publisher rotatePub = n.advertise<geometry_msgs::Twist>("/mobile_base/commands/velocity", 10);
+                                    geometry_msgs::Twist move;
+                                    int c = 0;
+                                    while(ros::ok()) {
+                                        move.angular.z = 1.5;
+                                        rotatePub.publish(move); 
+                                        c++;
+                                        if (c > 2*385000) {break;}
+                                    }
+                                                    }
                             }
                             else if(mostFrequentFinger == 4) {
                                 if (previousfinger == 0) {
                                     if(right) {
                                         strcpy(a, "Turning Right!");
+                                        putText(img, a, Point(20,40), CV_FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255,0,0), 2, 8, false);
                                         previousfinger = mostFrequentFinger;
+                                        ros::Publisher rotatePub = n.advertise<geometry_msgs::Twist>("/mobile_base/commands/velocity", 10);
+                                        geometry_msgs::Twist move;
+                                        int c = 0;
+                                        while(ros::ok()) {
+                                            move.linear.x = 0.3;
+                                            move.angular.z = 0.4;
+                                            rotatePub.publish(move); 
+                                            c++;
+                                            if (c > 385000) {break;}
+                                        }
                                     }
                                     else if (left) {
                                         strcpy(a, "Turning Left!"); 
+                                        putText(img, a, Point(20,40), CV_FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255,0,0), 2, 8, false);
                                         previousfinger = mostFrequentFinger;
+                                        ros::Publisher rotatePub = n.advertise<geometry_msgs::Twist>("/mobile_base/commands/velocity", 10);
+                                        geometry_msgs::Twist move;
+                                        int c = 0;
+                                        while(ros::ok()) {
+                                            move.linear.x = 0.3;
+                                            move.angular.z = -0.4;
+                                            rotatePub.publish(move); 
+                                            c++;
+                                            if (c > 385000) {break;}
+                                        }
                                     }
                                     else {
                                         strcpy(a, "High Five!");                                                

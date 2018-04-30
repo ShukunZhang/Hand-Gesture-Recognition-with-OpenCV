@@ -33,6 +33,8 @@ int computeFrequentFinger(vector<int> fingerVector) {
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "hand");
+    ros::NodeHandle nh;
+    ros::Rate loop_rate(0.5);
     //open default webcam and check for error
     VideoCapture cam(0);
     if (!cam.isOpened()) {
@@ -59,6 +61,10 @@ int main(int argc, char** argv)
 
     int right = 0;
     int left = 0;
+
+    /* Learning */
+    bool gestureLearned = false;
+    bool firstTime = true;
     while (ros::ok()) {
         bool readimg = cam.read(img);
         if (!readimg) {
@@ -130,7 +136,7 @@ int main(int argc, char** argv)
             vector<vector<Point> >hullPoint(contours.size());
 
             vector<vector<Vec4i> >defects(contours.size());
-            vector<vector<Point> >defectPoint(contours.size());
+            // vector<vector<Point> >defectPoint(contours.size());
 
             vector<vector<Point> >contours_poly(contours.size());
             Point2f rect_point[4];
@@ -182,29 +188,34 @@ int main(int argc, char** argv)
                         //make sure finger count is reset to 0 for every frame
                         fingerCount = 0;
 
-                        for (size_t k = 0; k < defects[i].size(); k++) {
-                            if (defects[i][k][3] > 50 * 256) { 
-                                int p_start = defects[i][k][0];
-                                int p_end = defects[i][k][1];
-                                int p_far = defects[i][k][2];
-                                //defectPoint[i].push_back(contours[i][p_far]);
-                                circle(img_roi, contours[i][p_end], 3, Scalar(0,255,0), 2);
-                                circle(img_roi, contours[i][p_start], 3, Scalar(0,255,0), 2);
-                                circle(img_roi, contours[i][p_far], 3, Scalar(0,0,255), 2);
-           
-                                if (contours[i][p_end].x > contours[i][p_far].x) {
-                                    right += 1;
-                                } else {
-                                    left += 1;
+                        if (gestureLearned == false) {  
+                            // before learning
+                            for (size_t k = 0; k < defects[i].size(); k++) {
+                                if (defects[i][k][3] > 50 * 256) { 
+                                    int p_start = defects[i][k][0];
+                                    int p_end = defects[i][k][1];
+                                    int p_far = defects[i][k][2];
+                                    //defectPoint[i].push_back(contours[i][p_far]);
+                                    circle(img_roi, contours[i][p_end], 3, Scalar(0,255,0), 2);
+                                    circle(img_roi, contours[i][p_start], 3, Scalar(0,255,0), 2);
+                                    circle(img_roi, contours[i][p_far], 3, Scalar(0,0,255), 2);
+               
+                                    if (contours[i][p_end].x > contours[i][p_far].x) {
+                                        right += 1;
+                                    } else {
+                                        left += 1;
+                                    }
+                                    
+                                    fingerCount++;
                                 }
-                                
-                                fingerCount++;
                             }
+                        } else {
+
                         }
                         
                         fingerVector.push_back(fingerCount);
 
-                        // Frame number TBD
+                        // Action Control
                         if (fingerVector.size() > 20) {
                             if (right > left) {
                                 right = 1;
@@ -215,8 +226,25 @@ int main(int argc, char** argv)
                             }
                             mostFrequentFinger = computeFrequentFinger(fingerVector);
                             if(mostFrequentFinger == 0) {
-                                strcpy(a, "You are ready to proceed to next action");
-                                previousfinger = 0;
+                                if (firstTime == false) {
+                                    strcpy(a, "You are ready to proceed to next action");
+                                    previousfinger = 0;
+                                } else {
+                                    strcpy(a, "You are ready to LEARN!!");
+                                    putText(img, a, Point(20,40), CV_FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255,0,0), 2, 8, false);
+                                    cout << "Ready?\n";
+                                    bool choice;
+                                    cin >> choice;
+                                    firstTime = false;
+                                    loop_rate.sleep();
+                                    previousfinger = 0;
+                                    /* TODO: learning */
+                                    if (choice) {
+                                        gestureLearned = true;
+                                    } else {
+                                        gestureLearned = false;
+                                    }    
+                                }
                             }
                             else if (mostFrequentFinger == 1) {
                                 if (previousfinger == 0) {

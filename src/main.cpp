@@ -64,6 +64,10 @@ int main(int argc, char** argv)
     int right = 0;
     int left = 0;
 
+    VideoWriter out;
+    cam.read(img);
+    out.open("out.avi", CV_FOURCC('M', 'J', 'P', 'G'), 15, img.size(), true);
+
     /* Learning */
     bool gestureLearned = false;
     bool firstTime = true;
@@ -280,7 +284,7 @@ int main(int argc, char** argv)
                                     }
                                     // trainingData[trainingImageNumber][0] = float(contours[i].size() / validDefectSize)/1.0;
                                     trainingData[trainingImageNumber][1] = float(validDefectSize)/1.0;
-                                    trainingData[trainingImageNumber][2] = float(contours[i].size())/100.0;
+                                    trainingData[trainingImageNumber][2] = float(contours[i].size())/60.0;
                                     trainingData[trainingImageNumber][0] = 0.0;
                                     cout << "contours size / contours: " << trainingData[trainingImageNumber][0] << endl;
                                     cout << "hullPoint: " << trainingData[trainingImageNumber][1] << endl;
@@ -307,7 +311,7 @@ int main(int argc, char** argv)
                             }
                             // sample[0][0] = float(contours[i].size() / validDefectSize) / 1.0;
                             sample[0][1] = float(validDefectSize) / 1.0;
-                            sample[0][2] = float(contours[i].size()) / 100.0;
+                            sample[0][2] = float(contours[i].size()) / 60.0;
                             sample[0][0] = 0.0;
                             cout << "contours size / defects: " << sample[0][0] << endl;
                             cout << "hullPoint: " << sample[0][1] << endl;
@@ -423,10 +427,13 @@ int main(int argc, char** argv)
             //imshow("Gray_image",img_gray);
             imshow("Thresholded_image",img_threshold);
             //imshow("ROI",img_roi);
+            out << img;
             if (waitKey(30) == 27) {
-                    return -1;
+                out.release();
+                return -1;
             }
         }
     }
+    out.release();
     return 0;
 }

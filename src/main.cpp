@@ -36,9 +36,9 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "hand");
     ros::NodeHandle nh;
-    ros::Rate loop_rate(0.5);
+    ros::Rate loop_rate(5);
     //open default webcam and check for error
-    VideoCapture cam(0);
+    VideoCapture cam(1);
     if (!cam.isOpened()) {
             cout<<"ERROR not opened "<< endl;
             return -1;
@@ -67,15 +67,16 @@ int main(int argc, char** argv)
     /* Learning */
     bool gestureLearned = false;
     bool firstTime = true;
-    int learningAction = 1;
-    float labels[250];
-    for (int i = 0; i < 250; i++) {
-        labels[i] = i / 50.0;
+    bool learning = false;
+    int learningAction = 0;
+    float labels[300];
+    for (int i = 0; i < 300; i++) {
+        labels[i] = float(i / 50);
     }
-    Mat labelsMat(250, 1, CV_32FC1, labels);
+    Mat labelsMat(300, 1, CV_32FC1, labels);
 
     // TODO: replace 3 with the number I want
-    float trainingData[250][3];
+    float trainingData[300][3];
     int trainingImageNumber = 0;
 
     CvSVMParams params;
@@ -207,6 +208,17 @@ int main(int argc, char** argv)
                         //make sure finger count is reset to 0 for every frame
                         fingerCount = 0;
 
+                        drawContours(img_threshold, contours, i, Scalar(255,255,0), 2, 8, vector<Vec4i>(), 0, Point());
+                        drawContours(img_threshold, hullPoint, i, Scalar(255,255,0), 1, 8, vector<Vec4i>(), 0, Point());
+                        drawContours(img_roi, hullPoint, i, Scalar(0, 0, 255), 2, 8, vector<Vec4i>(), 0, Point());
+                        approxPolyDP(contours[i], contours_poly[i], 3, false);
+                        boundRect[i] = boundingRect(contours_poly[i]);
+                        rectangle(img_roi, boundRect[i].tl(), boundRect[i].br(), Scalar(255, 0, 0), 2, 8, 0);
+                        minRect[i].points(rect_point);
+                        for (size_t k = 0; k < 4; k++) {
+                            line(img_roi, rect_point[k], rect_point[(k+1)%4], Scalar(0, 255, 0), 2, 8);
+                        }
+
                         if (gestureLearned == false) {  
                             if (firstTime == false) {
                                 // before learning
@@ -228,38 +240,80 @@ int main(int argc, char** argv)
                                         fingerCount++;
                                     }
                                 }
-                            } else { // first time learning
-                                if (learningAction == 1) {
-                                    strcpy(a, "First Action: Going Forward");
-                                } else if (learningAction == 2) {
-                                    strcpy(a, "Second Action: Going Backward");
-                                } else if (learningAction == 3) {
-                                    strcpy(a, "Second Action: 360 Degree Spin");
-                                } else if (learningAction == 4) {
-                                    strcpy(a, "Second Action: Turn Left");
-                                } else if (learningAction == 5) {
-                                    strcpy(a, "Second Action: Turn Right");
-                                } else {
-                                    strcpy(a, "Learning Finish!");
-                                    Mat trainingDataMat(250, 3, CV_32FC1, trainingData);
-                                    SVM.train(trainingDataMat, labelsMat, Mat(), Mat(), params);
-                                    gestureLearned = true;
+                            } else {
+                                if (learning) { // first time learning
+                                    cout << trainingImageNumber << endl;
+                                    if (learningAction == 0) {
+                                        strcpy(a, "Put a fist!");
+                                        cout << "Prompt";
+                                    } else if (learningAction == 1) {
+                                        strcpy(a, "First Action: Going Forward");
+                                        cout << "forward\n";
+                                    } else if (learningAction == 2) {
+                                        strcpy(a, "Second Action: Going Backward");
+                                        cout << "back\n";
+                                    } else if (learningAction == 3) {
+                                        strcpy(a, "Third Action: 360 Degree Spin");
+                                        cout << "360\n";
+                                    } else if (learningAction == 4) {
+                                        strcpy(a, "Fourth Action: Turn Left");
+                                        cout << "left\n";
+                                    } else if (learningAction == 5) {
+                                        strcpy(a, "Fifth Action: Turn Right");
+                                        cout << "right\n";
+                                    } else {
+                                        strcpy(a, "Learning Finish!");
+                                        Mat trainingDataMat(300, 3, CV_32FC1, trainingData);
+                                        SVM.train(trainingDataMat, labelsMat, Mat(), Mat(), params);
+                                        gestureLearned = true;
+                                        firstTime = false;
+                                        putText(img, a, Point(20,40), CV_FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255,0,0), 2, 8, false);
+                                        loop_rate.sleep();
+                                        cout << "break1\n";
+                                        break;
+                                    }
+                                    size_t validDefectSize = 1;
+                                    for (size_t k = 0; k < defects[i].size(); k++) {
+                                        if (defects[i][k][3] > 50 * 256) {
+                                            validDefectSize++;
+                                        }
+                                    }
+                                    // trainingData[trainingImageNumber][0] = float(contours[i].size() / validDefectSize)/1.0;
+                                    trainingData[trainingImageNumber][1] = float(validDefectSize)/1.0;
+                                    trainingData[trainingImageNumber][2] = float(contours[i].size())/100.0;
+                                    trainingData[trainingImageNumber][0] = 0.0;
+                                    cout << "contours size / contours: " << trainingData[trainingImageNumber][0] << endl;
+                                    cout << "hullPoint: " << trainingData[trainingImageNumber][1] << endl;
+                                    cout << "contours: " <<  trainingData[trainingImageNumber][2] << endl;
+                                    trainingImageNumber++;
+                                    if (trainingImageNumber % 50 == 0) { 
+                                        learningAction++;
+                                        strcpy(a, "Next gesture please.");
+                                        putText(img, a, Point(20,40), CV_FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255,0,0), 2, 8, false);
+                                        ros::Duration(3).sleep();
+                                    }
                                     putText(img, a, Point(20,40), CV_FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255,0,0), 2, 8, false);
-                                    loop_rate.sleep();
+                                    // loop_rate.sleep();
                                     break;
                                 }
-                                trainingData[trainingImageNumber][0] = hullPoint[i].size();
-                                trainingData[trainingImageNumber][1] = defects[i].size();
-                                trainingData[trainingImageNumber][2] = contours[i].size();
-                                trainingImageNumber++;
-                                if (trainingImageNumber % 50 == 0)
-                                    learningAction++;
-                                putText(img, a, Point(20,40), CV_FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255,0,0), 2, 8, false);
-                                loop_rate.sleep();
-                                break;
                             }
                         } else { // gestureLearned == true
-                            Mat sampleMat = (Mat_<float>(1, 3) << hullPoint[i].size(), defects[i].size(), contours[i].size());
+                            float sample[1][3];
+                            size_t validDefectSize = 1;
+                            for (size_t k = 0; k < defects[i].size(); k++) {
+                                if (defects[i][k][3] > 50 * 256) {
+                                    validDefectSize++;
+                                }
+                            }
+                            // sample[0][0] = float(contours[i].size() / validDefectSize) / 1.0;
+                            sample[0][1] = float(validDefectSize) / 1.0;
+                            sample[0][2] = float(contours[i].size()) / 100.0;
+                            sample[0][0] = 0.0;
+                            cout << "contours size / defects: " << sample[0][0] << endl;
+                            cout << "hullPoint: " << sample[0][1] << endl;
+                            cout << "contours: " <<  sample[0][2] << endl;
+                            Mat sampleMat(1, 3, CV_32FC1, sample);
+                            //Mat sampleMat = (Mat_<size_t>(1, 3) << hullPoint[i].size(), defects[i].size(), contours[i].size());
                             float response = SVM.predict(sampleMat);
                             if (response == 4.0) {
                                 left += 1;
@@ -292,14 +346,15 @@ int main(int argc, char** argv)
                                     cout << "Do you want the dog to learn your gesture? 1 for YES, 0 for NO\n";
                                     bool choice;
                                     cin >> choice;
-                                    firstTime = false;
                                     loop_rate.sleep();
                                     previousfinger = 0;
                                     /* TODO: learning */
                                     if (choice) {
-                                        gestureLearned = true;
+                                        learning = true;
+                                        cout << "learning set to true\n";
                                     } else {
                                         gestureLearned = false;
+                                        firstTime = false;
                                     }    
                                 }
                             }
@@ -348,7 +403,9 @@ int main(int argc, char** argv)
                             left = 0;
                         }
 
-                        putText(img, a, Point(20,40), CV_FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255,0,0), 2, 8, false);
+                    }
+
+                }
                         drawContours(img_threshold, contours, i, Scalar(255,255,0), 2, 8, vector<Vec4i>(), 0, Point());
                         drawContours(img_threshold, hullPoint, i, Scalar(255,255,0), 1, 8, vector<Vec4i>(), 0, Point());
                         drawContours(img_roi, hullPoint, i, Scalar(0, 0, 255), 2, 8, vector<Vec4i>(), 0, Point());
@@ -356,11 +413,10 @@ int main(int argc, char** argv)
                         boundRect[i] = boundingRect(contours_poly[i]);
                         rectangle(img_roi, boundRect[i].tl(), boundRect[i].br(), Scalar(255, 0, 0), 2, 8, 0);
                         minRect[i].points(rect_point);
+                        putText(img, a, Point(20,40), CV_FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255,0,0), 2, 8, false);
                         for (size_t k = 0; k < 4; k++) {
                             line(img_roi, rect_point[k], rect_point[(k+1)%4], Scalar(0, 255, 0), 2, 8);
                         }
-                    }
-                }
             }
 
             imshow("Original_image",img);

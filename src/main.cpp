@@ -279,7 +279,7 @@ int main(int argc, char** argv)
                                         move.angular.z = 1.5;
                                         rotatePub.publish(move); 
                                         c++;
-                                        if (c > 2*385000) {break;}
+                                        if (c > 2.01*385000) {break;}
                                     }
                                                     }
                             }
@@ -294,7 +294,7 @@ int main(int argc, char** argv)
                                         int c = 0;
                                         while(ros::ok()) {
                                             move.linear.x = 0.3;
-                                            move.angular.z = 0.4;
+                                            move.angular.z = -0.4;
                                             rotatePub.publish(move); 
                                             c++;
                                             if (c > 385000) {break;}
@@ -309,7 +309,7 @@ int main(int argc, char** argv)
                                         int c = 0;
                                         while(ros::ok()) {
                                             move.linear.x = 0.3;
-                                            move.angular.z = -0.4;
+                                            move.angular.z = 0.4;
                                             rotatePub.publish(move); 
                                             c++;
                                             if (c > 385000) {break;}

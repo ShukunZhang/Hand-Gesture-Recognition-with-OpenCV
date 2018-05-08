@@ -3,6 +3,8 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/ml/ml.hpp>
 #include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
 #include <ros/ros.h>
 
 #include "geometry_msgs/Twist.h"
@@ -37,6 +39,11 @@ int computeFrequentFinger(vector<int> fingerVector) {
         mostFrequentFinger = fingerVector[fingerVector.size() - 1];   
     }
     return mostFrequentFinger;
+}
+
+float distanceP2P(Point a, Point b) {
+    float d = sqrt(fabs(pow(a.x - b.x, 2) + pow(a.y - b.y, 2)));
+    return d;
 }
 
 //only push back when the screen count down to 3 2 1 
@@ -283,17 +290,21 @@ int main(int argc, char** argv)
                                         break;
                                     }
                                     size_t validDefectSize = 1;
+                                    float totalDist = 0;
                                     for (size_t k = 0; k < defects[i].size(); k++) {
                                         if (defects[i][k][3] > 50 * 256) {
+                                            int p_start = defects[i][k][0];
+                                            int p_end = defects[i][k][1];
+                                            totalDist = distanceP2P(contours[i][p_start], contours[i][p_end]);
                                             validDefectSize++;
                                         }
                                     }
-                                    // trainingData[trainingImageNumber][0] = float(contours[i].size() / validDefectSize)/1.0;
+                                    trainingData[trainingImageNumber][0] = float(totalDist)/1.0;
                                     trainingData[trainingImageNumber][1] = float(validDefectSize)/1.0;
                                     trainingData[trainingImageNumber][2] = float(contours[i].size())/60.0;
-                                    trainingData[trainingImageNumber][0] = 0.0;
-                                    cout << "contours size / contours: " << trainingData[trainingImageNumber][0] << endl;
-                                    cout << "hullPoint: " << trainingData[trainingImageNumber][1] << endl;
+                                    // trainingData[trainingImageNumber][0] = 0.0;
+                                    cout << "total distance between fingers: " << trainingData[trainingImageNumber][0] << endl;
+                                    cout << "number of defects: " << trainingData[trainingImageNumber][1] << endl;
                                     cout << "contours: " <<  trainingData[trainingImageNumber][2] << endl;
                                     trainingImageNumber++;
                                     if (trainingImageNumber % 50 == 0) { 
@@ -310,17 +321,21 @@ int main(int argc, char** argv)
                         } else { // gestureLearned == true
                             float sample[1][3];
                             size_t validDefectSize = 1;
+                            float totalDist = 0;
                             for (size_t k = 0; k < defects[i].size(); k++) {
                                 if (defects[i][k][3] > 50 * 256) {
+                                    int p_start = defects[i][k][0];
+                                    int p_end = defects[i][k][1];
+                                    totalDist = distanceP2P(contours[i][p_start], contours[i][p_end]);
                                     validDefectSize++;
                                 }
                             }
-                            // sample[0][0] = float(contours[i].size() / validDefectSize) / 1.0;
+                            sample[0][0] = float(totalDist)/1.0;
                             sample[0][1] = float(validDefectSize) / 1.0;
                             sample[0][2] = float(contours[i].size()) / 60.0;
-                            sample[0][0] = 0.0;
-                            cout << "contours size / defects: " << sample[0][0] << endl;
-                            cout << "hullPoint: " << sample[0][1] << endl;
+                            // sample[0][0] = 0.0;
+                            cout << "total distance between fingers: " << sample[0][0] << endl;
+                            cout << "number of defects: " << sample[0][1] << endl;
                             cout << "contours: " <<  sample[0][2] << endl;
                             Mat sampleMat(1, 3, CV_32FC1, sample);
                             //Mat sampleMat = (Mat_<size_t>(1, 3) << hullPoint[i].size(), defects[i].size(), contours[i].size());
